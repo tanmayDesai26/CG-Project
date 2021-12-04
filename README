@@ -1,0 +1,24 @@
+﻿Project: Computer Graphics
+
+Tanmay Desai and Jhansi Saketa BV
+Department of Computer Science
+
+
+Key bindings
+  
+  0 		 Reset theta and phi
+  r		 Rain
+  l		 Snow
+  h		 Hail
+  arrows     Change view angle
+  
+  ESC        Exit
+
+  Things to look at:  
+  Life-like scene, texturing, changing seasons, moving objects
+
+  Things to do:
+  First-person view, collecting and melting of ice, street lights, day and night.
+
+  Code we reused:
+  We used rain code and customized accordingly for our project and made snow and hail out of it.
