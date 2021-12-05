@@ -2,6 +2,7 @@
 //  Willem A. (Vlakkies) Schreuder
 #include "CSCIx229.h"
 
+
 //
 //  Set projection
 //
@@ -24,26 +25,45 @@
 //}
 
 
-void Project(double mode,double fov,double asp,double dim,double x,double z,double lx,double ly,double lz,double s)
+void Project(double mode,double fov,double asp,double dim,double x,double z,double lx,double ly,double lz,double s, double fp)
 {
 
 
    //  Tell OpenGL we want to manipulate the projection matrix
+//   glMatrixMode(GL_PROJECTION);
+   //  Undo previous transformations
+//   glLoadIdentity();
+   //  Perspective transformation
+//   if (mode==1)
+//      gluPerspective(fov,asp,dim/16,16*dim);
+   //  Orthogonal transformation
+//   else
+//      glOrtho(-asp*dim,asp*dim,-dim,+dim,-dim,+dim);
+   //  Switch to manipulating the model matrix
+//   glMatrixMode(GL_MODELVIEW);
+   //  Undo previous transformations
+//   glLoadIdentity();
+
+//  Tell OpenGL we want to manipulate the projection matrix
    glMatrixMode(GL_PROJECTION);
    //  Undo previous transformations
    glLoadIdentity();
    //  Perspective transformation
-   if (mode==1)
-      gluPerspective(fov,asp,dim/16,16*dim);
-   //  Orthogonal transformation
-   else
-      glOrtho(-asp*dim,asp*dim,-dim,+dim,-dim,+dim);
+   if(fp) {
+      gluPerspective(fov,asp,dim/4,4*dim);
+   }
+   else {
+      if (mode)
+         gluPerspective(fov,asp,dim/4,4*dim);
+      //  Orthogonal projection
+      else
+         glOrtho(-asp*dim,+asp*dim, -dim,+dim, -dim,+dim);
+   }  
    //  Switch to manipulating the model matrix
    glMatrixMode(GL_MODELVIEW);
    //  Undo previous transformations
    glLoadIdentity();
-
-
+   }
 
 
 
@@ -66,4 +86,4 @@ void Project(double mode,double fov,double asp,double dim,double x,double z,doub
 //   glMatrixMode(GL_MODELVIEW);
 //   //  Undo previous transformations
 //   glLoadIdentity();
-}
+

@@ -32,6 +32,9 @@ int fall;
 int an;
 int k=0;
 int kk=0;
+double fp=1.0;
+int rot=0.0;
+
 
 //floor colors
 float r = 0.0;
@@ -104,6 +107,30 @@ vtx is[n];
 #define PI 3.1452
 unsigned int texture[40];
 
+// Eye coords
+double Ex=0;
+double Ey=0;
+double Ez=5;
+
+/* Camera looking coords 
+ * Don't need a y coord because up-down view cannot be altered in fp 
+ */
+double Cx = 0; 
+double Cz = 0; 
+
+/*
+ *  Draw vertex in polar coordinates
+ */
+static void Vertex(double th,double ph)
+{
+   double x = Sin(th)*Cos(ph);
+   double y = Cos(th)*Cos(ph);
+   double z =         Sin(ph);
+   //  For a sphere at the origin, the position
+   //  and normal vectors are the same
+   glNormal3d(x,y,z);
+   glVertex3d(x,y,z);
+}
 //static void Vertex(double th,double ph)
 //{
 //   double x = Sin(th)*Cos(ph);
@@ -2042,34 +2069,34 @@ void initParticles(int i) {
  *  Draw vertex in polar coordinates
  */
 
-//static void ball(double x,double y,double z,double r)
-//{
-//   //  Save transformation
-//   glPushMatrix();
-//   //  Offset, scale and rotate
-//   glTranslated(x,y,z);
-//   glScaled(r,r,r);
-//   //  White ball with yellow specular
-//   float yellow[]   = {1.0,1.0,0.0,1.0};
-//   float Emission[] = {0.0,0.0,0.01*emission,1.0};
-//   glColor3f(1,1,1);
-//   glMaterialf(GL_FRONT,GL_SHININESS,shiny);
-//   glMaterialfv(GL_FRONT,GL_SPECULAR,yellow);
-//   glMaterialfv(GL_FRONT,GL_EMISSION,Emission);
-//   //  Bands of latitude
-//   for (int ph=-90;ph<90;ph+=inc)
-//   {
-//      glBegin(GL_QUAD_STRIP);
-//      for (int th=0;th<=360;th+=2*inc)
-//      {
-//         Vertex(th,ph);
-//         Vertex(th,ph+inc);
-//      }
-//      glEnd();
-//   }
-//   //  Undo transofrmations
-//   glPopMatrix();
-//}
+static void ball(double x,double y,double z,double r)
+{
+   //  Save transformation
+   glPushMatrix();
+   //  Offset, scale and rotate
+   glTranslated(x,y,z);
+   glScaled(r,r,r);
+   //  White ball with yellow specular
+   float yellow[]   = {1.0,1.0,0.0,1.0};
+   float Emission[] = {0.0,0.0,0.01*emission,1.0};
+   glColor3f(1,1,1);
+   glMaterialf(GL_FRONT,GL_SHININESS,shiny);
+   glMaterialfv(GL_FRONT,GL_SPECULAR,yellow);
+   glMaterialfv(GL_FRONT,GL_EMISSION,Emission);
+   //  Bands of latitude
+   for (int ph=-90;ph<90;ph+=inc)
+   {
+      glBegin(GL_QUAD_STRIP);
+      for (int th=0;th<=360;th+=2*inc)
+      {
+         Vertex(th,ph);
+         Vertex(th,ph+inc);
+      }
+      glEnd();
+   }
+   //  Undo transofrmations
+   glPopMatrix();
+}
 //
 //static void sun(double x,double y,double z,double r)
 //{
@@ -2330,18 +2357,67 @@ void display()
 //   glClearColor(0.196078,0.6,0.8,1);
    //  Undo previous transformations
    glLoadIdentity();
+   if (fp) {
+      Cx = +2*dim*Sin(rot); //Ajust the camera vector based on rot
+      Cz = -2*dim*Cos(rot);
+
+      gluLookAt(Ex,Ey,Ez, Cx+Ex,Ey,Cz+Ez, 0,1,0); //  Use gluLookAt, y is the up-axis
+
+   }
    if(mode == 1)
    {
-      double Ex = -2*dim*Sin(th)*Cos(ph);
-      double Ey = +2*dim        *Sin(ph);
-      double Ez = +2*dim*Cos(th)*Cos(ph);
-      gluLookAt(Ex,Ey,Ez , 0,0,0 , 0,Cos(ph),0);
+      double px = -2*dim*Sin(th)*Cos(ph);
+      double py = +2*dim        *Sin(ph);
+      double pz = +2*dim*Cos(th)*Cos(ph);
+      gluLookAt(px,py,pz , 0,0,0 , 0,Cos(ph),0);
    }
    else if (mode == 0)
    {
      glRotatef(ph,1,0,0);
      glRotatef(th,0,1,0);
    }
+   //Light Switch
+    if (light)
+   {
+      //  Translate intensity to color vectors
+      float Ambient[]   = {0.01*ambient ,0.01*ambient ,0.01*ambient ,1.0};
+      float Diffuse[]   = {0.01*diffuse ,0.01*diffuse ,0.01*diffuse ,1.0};
+      float Specular[]  = {0.01*specular,0.01*specular,0.01*specular,1.0};
+      //  Light position
+      if(con)
+      {
+      float Position[]  = {xlight,ylight,zlight,1.0};
+      ball(Position[0],Position[1],Position[2] , 0.2);
+      glLightfv(GL_LIGHT0,GL_POSITION,Position);
+      }
+      else
+      {
+      float Position[]  = {distance*Cos(zh),ylight,distance*Sin(zh),1.0};
+      ball(Position[0],Position[1],Position[2] , 0.2);
+      glLightfv(GL_LIGHT0,GL_POSITION,Position);
+      }
+      //  Draw light position as ball (still no lighting here)
+      glColor3f(1,0.5,0);
+//      ball(Position[0],Position[1],Position[2] , 0.2);
+      //  OpenGL should normalize normal vectors
+      glEnable(GL_NORMALIZE);
+      //  Enable lighting
+      glEnable(GL_LIGHTING);
+      //  Location of viewer for specular calculations
+      glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER,local);
+      //  glColor sets ambient and diffuse color materials
+      glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+      glEnable(GL_COLOR_MATERIAL);
+      //  Enable light 0
+      glEnable(GL_LIGHT0);
+      //  Set ambient, diffuse, specular components and position of light 0
+      glLightfv(GL_LIGHT0,GL_AMBIENT ,Ambient);
+      glLightfv(GL_LIGHT0,GL_DIFFUSE ,Diffuse);
+      glLightfv(GL_LIGHT0,GL_SPECULAR,Specular);
+//      glLightfv(GL_LIGHT0,GL_POSITION,Position);
+   }
+   else
+      glDisable(GL_LIGHTING);
  if (fall == RAIN) {
     drawRain();
   }else if (fall == HAIL) {
@@ -2565,13 +2641,12 @@ glRotated(zh,0,1,0);
 //   cube(1,0.01,1 , -1.5,0.05,1, 0);
    //  Display parameters
    glWindowPos2i(5,5);
-   Print("Angle=%d,%d  Dim=%.1f FOV=%d Ex=%f Ey=1.00 Ez=%f dx=%f dy=%f dz=%f angle=%f,mode=%d",th,ph,dim,fov,x1+lx,z1,lx,ly,lz,angle,mode);
-if(mode==0)
-Print("Projection = Orthogonal");
-else if(mode==1)
-Print("Projection = Perspective");
-else
-Print("projection = First Person view");  
+   if (fp) {
+      Print("FP=On View Angle=%d",rot);
+   }
+   else {
+      Print("FP=Off Angle=%d,%d  Dim=%.1f FOV=%d Projection=%s",th,ph,dim,fov,mode?"Perpective":"Orthogonal");
+   }  
    if (light)
    {
       glWindowPos2i(5,45);
@@ -2626,7 +2701,7 @@ void special(int key,int x,int y)
    th %= 360;
    ph %= 360;
    //  Update projection
-   Project(mode,fov,asp,dim,x1,z1,lx,ly,lz,s);
+   Project(mode,fov,asp,dim,x1,z1,lx,ly,lz,s,fp);
    //  Tell GLUT it is necessary to redisplay the scene
    glutPostRedisplay();
 //   Project(mode,fov,asp,dim,x,z,lx,ly,lz,s);
@@ -2732,6 +2807,31 @@ fog=1;
   if (ch == 'q') { // QUIT
     exit(0);
   }
+  else if (ch == 'f' || ch == 'F')
+   {
+      fp = 1-fp;
+   }
+
+   if (fp) {
+      double dt = 0.05;
+      if (ch == 'w' || ch == 'W'){
+         Ex += Cx*dt; //Update the eye vector based on the camera vector
+         Ez += Cz*dt;
+      }
+      else if (ch == 'a' || ch == 'A'){
+         rot -= 3;
+      }
+      else if (ch == 's' || ch == 'S'){
+         Ex -= Cx*dt;
+         Ez -= Cz*dt;
+      }
+      else if (ch == 'd' || ch == 'D'){
+         rot += 3;
+      }
+
+      //  Keep angles to +/-360 degrees
+      rot %= 360;
+   }
 else if(ch=='s' && s >= 0.1)
 {
 s-=0.1;
@@ -2772,7 +2872,7 @@ s=1.0;
    //  Translate shininess power to value (-1 => 0)
    shiny = shininess<0 ? 0 : pow(2.0,shininess);
    //  Reproject
-   Project(mode,fov,asp,dim,x1,z1,lx,ly,lz,s);
+   Project(mode,fov,asp,dim,x1,z1,lx,ly,lz,s,fp);
    //  Tell GLUT it is necessary to redisplay the scene
    glutPostRedisplay();
 }
@@ -2787,7 +2887,7 @@ void reshape(int width,int height)
    //  Set the viewport to the entire window
    glViewport(0,0, RES*width,RES*height);
    //  Set projection
-   Project(mode,fov,asp,dim,x1,z1,lx,ly,lz,s);
+   Project(mode,fov,asp,dim,x1,z1,lx,ly,lz,s,fp);
 }
 
 /*
